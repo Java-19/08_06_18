@@ -3,6 +3,8 @@ package com.sheygam.java_19_08_06_18;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,23 +17,31 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.Observer;
 import io.reactivex.Single;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
 import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MY_TAG";
+    private TextView resTxt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        resTxt = findViewById(R.id.resTxt);
 //        creation();
 //        diposableTest();
-        types();
+//        types();
+//        multiThreading();
+        bindUnbind();
     }
 
     public void creation(){
@@ -187,6 +197,81 @@ public class MainActivity extends AppCompatActivity {
         };
 
         maybe.subscribe(maybeObserver);
+    }
+
+    public void multiThreading(){
+        Observable<String> observable = Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> emitter) throws Exception {
+                Thread.sleep(10000);
+                emitter.onNext("All done");
+                emitter.onComplete();
+            }
+        });
+
+        DisposableObserver<String> observer = new DisposableObserver<String>() {
+            @Override
+            public void onNext(String s) {
+                resTxt.setText(s);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                Toast.makeText(MainActivity.this, "Complete", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        observable
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(observer);
+
+
+    }
+
+    public void bindUnbind(){
+        Observable<String> observable = Observable.just("Name 1", "Name 2", "Name 3");
+        DisposableObserver<String> observer = new DisposableObserver<String>() {
+            @Override
+            public void onNext(String s) {
+                Log.d(TAG, "onNext: " + s);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.d(TAG, "onError: ");
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "onComplete: ");
+            }
+        };
+
+
+        Disposable disposable = observable.subscribeOn(Schedulers.io())
+                .subscribeWith(observer);
+        disposable.dispose();
+
+    }
+
+
+    public void lambda(){
+//        .subscribe(Consumer<? super T> onNext)
+//        .subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError)
+//        .subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError, Action onComplete)
+
+        Observable<Integer> observable = Observable.just(1,2,3,4,5,6,7,8,9);
+
+        Disposable disposable = observable.subscribe(
+                System.out::println,
+                System.out::println,
+                () -> System.out.println("Complete"));
     }
 
 }
